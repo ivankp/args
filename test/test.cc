@@ -1,5 +1,8 @@
 #include <iostream>
 
+#define test(var) \
+  std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
+
 #include "parse_args.hh"
 
 using std::cout;

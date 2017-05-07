@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <regex>
 #include <memory>
 
 namespace ivanp { namespace args {
@@ -31,8 +30,12 @@ template <>
 bool arg_match<const char*>::operator()(const char* arg) const noexcept;
 template <>
 bool arg_match<std::string>::operator()(const char* arg) const noexcept;
+#ifdef _GLIBCXX_REGEX
 template <>
-bool arg_match<std::regex>::operator()(const char* arg) const noexcept;
+inline bool arg_match<std::regex>::operator()(const char* arg) const noexcept {
+  return std::regex_match(arg,m);
+}
+#endif
 
 // ------------------------------------------------------------------
 
@@ -63,7 +66,11 @@ template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<const char*>) noexcept {
   const arg_type atype = find_arg_type(x);
   if (atype==context_arg)
+#ifdef _GLIBCXX_REGEX
     return { new arg_match<std::regex>( x ), atype };
+#else
+    return { nullptr, atype };
+#endif
   else
     return { new arg_match<const char*>( x ), atype };
 }
@@ -71,7 +78,11 @@ template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<std::string>) noexcept {
   const arg_type atype = find_arg_type(x.c_str());
   if (atype==context_arg)
+#ifdef _GLIBCXX_REGEX
     return { new arg_match<std::regex>( std::forward<T>(x) ), atype };
+#else
+    return { nullptr, atype };
+#endif
   else
     return { new arg_match<std::string>( std::forward<T>(x) ), atype };
 }
