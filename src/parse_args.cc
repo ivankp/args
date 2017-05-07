@@ -7,21 +7,11 @@ namespace ivanp { namespace args {
 namespace detail {
 
 template <>
-bool arg_match<char>::operator()(const char* arg) const noexcept {
-  // return ( arg[0]=='-' && arg[1]==m && arg[2]=='\0' );
-  return ( arg[1]==m && arg[2]=='\0' );
-}
-template <>
 bool arg_match<const char*>::operator()(const char* arg) const noexcept {
-  for (int i=0; m[i]!='\0' && arg[i]!='\0'; ++i)
+  int i = 0;
+  for (; m[i]!='\0' && arg[i]!='\0'; ++i)
     if ( arg[i]!=m[i] ) return false;
-  return true;
-}
-template <>
-bool arg_match<std::string>::operator()(const char* arg) const noexcept {
-  for (int i=0; m[i]!='\0' && arg[i]!='\0'; ++i)
-    if ( arg[i]!=m[i] ) return false;
-  return true;
+  return m[i]=='\0' && arg[i]=='\0';
 }
 
 arg_type find_arg_type(const char* arg) noexcept {

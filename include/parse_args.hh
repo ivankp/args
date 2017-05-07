@@ -25,11 +25,15 @@ public:
 };
 
 template <>
-bool arg_match<char>::operator()(const char* arg) const noexcept;
+inline bool arg_match<char>::operator()(const char* arg) const noexcept {
+  return ( arg[1]==m && arg[2]=='\0' );
+}
 template <>
 bool arg_match<const char*>::operator()(const char* arg) const noexcept;
 template <>
-bool arg_match<std::string>::operator()(const char* arg) const noexcept;
+inline bool arg_match<std::string>::operator()(const char* arg) const noexcept {
+  return m == arg;
+}
 #ifdef _GLIBCXX_REGEX
 template <>
 inline bool arg_match<std::regex>::operator()(const char* arg) const noexcept {
@@ -65,34 +69,25 @@ arg_match_type make_arg_match_impl(T&& x, arg_match_tag<char>) noexcept {
 template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<const char*>) noexcept {
   const arg_type t = find_arg_type(x);
-  const arg_match_base *m = nullptr;
-  switch (t) {
-    case    long_arg: m = new arg_match<const char*>( x );
-    case   short_arg: m = new arg_match<char>( x[1] );
-    case context_arg: 
 #ifdef _GLIBCXX_REGEX
-      m = new arg_match<std::regex>( x );
+  if (t==context_arg) return { new arg_match<std::regex>( x ), t };
+  else return { new arg_match<const char*>( x ), t };
 #else
-      m = new arg_match<const char*>( x );
+  return { new arg_match<const char*>( x ), t };
 #endif
-  }
-  return { m, t };
+
 }
 template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<std::string>) noexcept {
   const arg_type t = find_arg_type(x.c_str());
-  const arg_match_base *m = nullptr;
-  switch (t) {
-    case    long_arg: m = new arg_match<std::string>( std::forward<T>(x) );
-    case   short_arg: m = new arg_match<char>( x[1] );
-    case context_arg: 
 #ifdef _GLIBCXX_REGEX
-      m = new arg_match<std::regex>( std::forward<T>(x) );
+  if (t==context_arg)
+    return { new arg_match<std::regex>( std::forward<T>(x) ), t };
+  else
+    return { new arg_match<std::string>( std::forward<T>(x) ), t };
 #else
-      m = new arg_match<std::string>( std::forward<T>(x) );
+  return { new arg_match<std::string>( std::forward<T>(x) ), t };
 #endif
-  }
-  return { m, t };
 }
 
 // ------------------------------------------------------------------

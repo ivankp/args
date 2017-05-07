@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   try {
     using namespace ivanp::args;
     parse_args()
-    (&a,"-a","A")
+    (&a,std::string("-aa"),"A")
     (&b,{"-b","--b-opt"},"B")
     (&c,'c',"C")
     (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")
