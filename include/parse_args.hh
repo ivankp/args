@@ -64,27 +64,35 @@ arg_match_type make_arg_match_impl(T&& x, arg_match_tag<char>) noexcept {
 }
 template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<const char*>) noexcept {
-  const arg_type atype = find_arg_type(x);
-  if (atype==context_arg)
+  const arg_type t = find_arg_type(x);
+  const arg_match_base *m = nullptr;
+  switch (t) {
+    case    long_arg: m = new arg_match<const char*>( x );
+    case   short_arg: m = new arg_match<char>( x[1] );
+    case context_arg: 
 #ifdef _GLIBCXX_REGEX
-    return { new arg_match<std::regex>( x ), atype };
+      m = new arg_match<std::regex>( x );
 #else
-    return { nullptr, atype };
+      m = new arg_match<const char*>( x );
 #endif
-  else
-    return { new arg_match<const char*>( x ), atype };
+  }
+  return { m, t };
 }
 template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<std::string>) noexcept {
-  const arg_type atype = find_arg_type(x.c_str());
-  if (atype==context_arg)
+  const arg_type t = find_arg_type(x.c_str());
+  const arg_match_base *m = nullptr;
+  switch (t) {
+    case    long_arg: m = new arg_match<std::string>( std::forward<T>(x) );
+    case   short_arg: m = new arg_match<char>( x[1] );
+    case context_arg: 
 #ifdef _GLIBCXX_REGEX
-    return { new arg_match<std::regex>( std::forward<T>(x) ), atype };
+      m = new arg_match<std::regex>( std::forward<T>(x) );
 #else
-    return { nullptr, atype };
+      m = new arg_match<std::string>( std::forward<T>(x) );
 #endif
-  else
-    return { new arg_match<std::string>( std::forward<T>(x) ), atype };
+  }
+  return { m, t };
 }
 
 // ------------------------------------------------------------------

@@ -8,7 +8,8 @@ namespace detail {
 
 template <>
 bool arg_match<char>::operator()(const char* arg) const noexcept {
-  return ( arg[0]=='-' && arg[1]==m && arg[2]=='\0' );
+  // return ( arg[0]=='-' && arg[1]==m && arg[2]=='\0' );
+  return ( arg[1]==m && arg[2]=='\0' );
 }
 template <>
 bool arg_match<const char*>::operator()(const char* arg) const noexcept {

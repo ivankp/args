@@ -1,4 +1,5 @@
 #include <iostream>
+// #include <regex>
 
 #define test(var) \
   std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
@@ -16,8 +17,10 @@ int main(int argc, char* argv[]) {
     using namespace ivanp::args;
     parse_args()
     (&a,"-a","A")
-    (&b,"--b-opt","B")
+    (&b,{"-b","--b-opt"},"B")
     (&c,'c',"C")
+    (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")
+    (&c,".*\\.txt","R")
     .parse(argc,argv);
   } catch(std::exception& e) {
     cerr << e.what() << endl;
