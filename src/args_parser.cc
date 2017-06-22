@@ -1,4 +1,4 @@
-#include "parse_args.hh"
+#include "args_parser.hh"
 
 #include <iostream>
 
@@ -26,7 +26,7 @@ arg_type find_arg_type(const char* arg) noexcept {
 
 }
 
-void parse_args::parse(int argc, char const * const * argv) {
+void parser::parse(int argc, char const * const * argv) {
   for (int i=1; i<argc; ++i) {
     std::cout << argv[i] << ' ' << detail::find_arg_type(argv[i]) << std::endl;
     for (const auto& m : matchers[detail::find_arg_type(argv[i])]) {

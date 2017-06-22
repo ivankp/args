@@ -5,7 +5,7 @@ NODEPS := clean
 
 all: test/test
 
-test/test: test/test.cc src/parse_args.cc include/parse_args.hh
+test/test: test/test.cc src/args_parser.cc include/args_parser.hh
 	$(CXX) $(CXXFLAGS) $(filter %.cc,$^) -o $@
 
 clean:

@@ -1,22 +1,22 @@
 #include <iostream>
-// #include <regex>
 
-#define test(var) \
+#define TEST(var) \
   std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
 
-#include "parse_args.hh"
+#define ARGS_PARSER_STD_REGEX
+#include "args_parser.hh"
 
 using std::cout;
 using std::cerr;
 using std::endl;
+using namespace std::string_literals;
 
 int main(int argc, char* argv[]) {
   int a, b, c;
 
   try {
-    using namespace ivanp::args;
-    parse_args()
-    (&a,std::string("-aa"),"A")
+    ivanp::args::parser()
+    (&a,"-aa"s,"A")
     (&b,{"-b","--b-opt"},"B")
     (&c,'c',"C")
     (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")

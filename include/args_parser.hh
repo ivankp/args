@@ -1,9 +1,15 @@
-#ifndef IVANP_PARSE_ARGS_HH
-#define IVANP_PARSE_ARGS_HH
+#ifndef IVANP_ARGS_PARSER_HH
+#define IVANP_ARGS_PARSER_HH
 
 #include <string>
 #include <vector>
 #include <memory>
+
+#ifdef ARGS_PARSER_STD_REGEX
+#include <regex>
+#elif defined(ARGS_PARSER_BOOST_REGEX)
+#include <boost/regex.hpp>
+#endif
 
 namespace ivanp { namespace args {
 
@@ -40,12 +46,21 @@ inline bool arg_match<std::regex>::operator()(const char* arg) const noexcept {
   return std::regex_match(arg,m);
 }
 #endif
+#ifdef BOOST_RE_REGEX_HPP
+template <>
+inline bool arg_match<boost::regex>::operator()(const char* arg) const noexcept {
+  return boost::regex_match(arg,m);
+}
+#endif
 
 // ------------------------------------------------------------------
 
 enum arg_type { long_arg, short_arg, context_arg };
 
 arg_type find_arg_type(const char* arg) noexcept;
+inline arg_type find_arg_type(const std::string& arg) noexcept {
+  return find_arg_type(arg.c_str());
+}
 
 // Matcher factories ------------------------------------------------
 
@@ -66,28 +81,22 @@ template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<char>) noexcept {
   return { new arg_match<char>( x ), short_arg };
 }
-template <typename T>
-arg_match_type make_arg_match_impl(T&& x, arg_match_tag<const char*>) noexcept {
+template <typename T, typename TagT>
+std::enable_if_t<std::is_convertible<TagT,std::string>::value,arg_match_type>
+make_arg_match_impl(T&& x, arg_match_tag<TagT>) noexcept {
   const arg_type t = find_arg_type(x);
-#ifdef _GLIBCXX_REGEX
-  if (t==context_arg) return { new arg_match<std::regex>( x ), t };
-  else return { new arg_match<const char*>( x ), t };
-#else
-  return { new arg_match<const char*>( x ), t };
-#endif
-
-}
-template <typename T>
-arg_match_type make_arg_match_impl(T&& x, arg_match_tag<std::string>) noexcept {
-  const arg_type t = find_arg_type(x.c_str());
-#ifdef _GLIBCXX_REGEX
+#if defined(ARGS_PARSER_STD_REGEX) || defined(ARGS_PARSER_BOOST_REGEX)
+  using regex_t =
+# ifdef ARGS_PARSER_STD_REGEX
+    std::regex;
+# else
+    boost::regex;
+# endif
   if (t==context_arg)
-    return { new arg_match<std::regex>( std::forward<T>(x) ), t };
+    return { new arg_match<regex_t>( std::forward<T>(x) ), t };
   else
-    return { new arg_match<std::string>( std::forward<T>(x) ), t };
-#else
-  return { new arg_match<std::string>( std::forward<T>(x) ), t };
 #endif
+    return { new arg_match<TagT>( std::forward<T>(x) ), t };
 }
 
 // ------------------------------------------------------------------
@@ -117,7 +126,7 @@ public:
 
 } // end namespace detail
 
-class parse_args {
+class parser {
   std::vector<std::unique_ptr<detail::arg_def_base>> arg_defs;
   std::vector<std::vector<std::pair<
     std::unique_ptr<const detail::arg_match_base>,
@@ -125,11 +134,11 @@ class parse_args {
   >>> matchers;
 
 public:
-  parse_args(): matchers(3) { }
+  parser(): matchers(3) { }
   void parse(int argc, char const * const * argv);
 
   template <typename T, typename... Props>
-  parse_args& operator()(T* x,
+  parser& operator()(T* x,
     std::initializer_list<const char*> matchers, const char* descr="",
     const Props&... props
   ) {
@@ -142,7 +151,7 @@ public:
   }
 
   template <typename T, typename Matcher, typename... Props>
-  parse_args& operator()(T* x,
+  parser& operator()(T* x,
     Matcher&& matcher, const char* descr="",
     const Props&... props
   ) {
@@ -154,7 +163,7 @@ public:
 
 /*
   template <typename T, typename... Matchers, typename... Props>
-  parse_args& operator()(T* x,
+  parser& operator()(T* x,
     std::tuple<Matchers...> matchers, const char* descr="",
     const Props&... props
   ) {
