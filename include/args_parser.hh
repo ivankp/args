@@ -1,10 +1,6 @@
 #ifndef IVANP_ARGS_PARSER_HH
 #define IVANP_ARGS_PARSER_HH
 
-#include <iostream>
-#define TEST(var) \
-  std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
-
 #include <string>
 #include <vector>
 #include <memory>
@@ -261,14 +257,14 @@ public:
     arg_defs.emplace_back(new detail::arg_def<T>(x,descr));
     for (const char* x : matchers) {
       auto&& m = detail::make_arg_match(x);
+      // TODO: find out what binding to auto&& really does
       this->matchers[m.second].emplace_back(m.first,arg_defs.back().get());
     }
+    auto props_tup = std::make_tuple(std::forward<Props>(props)...);
     prop::detail::apply_all(
-      arg_defs.back().get(),
-      std::make_tuple(std::forward<Props>(props)...),
+      arg_defs.back().get(), props_tup,
       prop::detail::get_pred_indices<Props...>{}
     );
-    TEST( arg_defs.back()->name )
     return *this;
   }
 
@@ -279,12 +275,11 @@ public:
     arg_defs.emplace_back(new detail::arg_def<T>(x,descr));
     auto&& m = detail::make_arg_match(std::forward<Matcher>(matcher));
     matchers[m.second].emplace_back(m.first,arg_defs.back().get());
+    auto props_tup = std::make_tuple(std::forward<Props>(props)...);
     prop::detail::apply_all(
-      arg_defs.back().get(),
-      std::make_tuple(std::forward<Props>(props)...),
+      arg_defs.back().get(), props_tup,
       prop::detail::get_pred_indices<Props...>{}
     );
-    TEST( arg_defs.back()->name )
     return *this;
   }
 

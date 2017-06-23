@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     (&b,{"-b","--b-opt"},"B",mult{},pos{2},name{"b"},4,4,4)
     (&c,'c',"C")
     (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")
-    (&c,".*\\.txt","R",name{"regex"})
+    (&c,".*\\.txt","R",name{"regex"},req())
     .parse(argc,argv);
   } catch(std::exception& e) {
     cerr << e.what() << endl;
