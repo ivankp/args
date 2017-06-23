@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
 
   try {
     using namespace ivanp::args::prop;
-    ivanp::args::parser()
+    ivanp::args::parser('h',"--help")
     (&a,"-aa"s,"A")
     (&b,{"-b","--b-opt"},"B",mult{},pos{2},name{"b"},4,4,4)
     (&c,'c',"C")

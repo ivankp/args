@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+using std::cout;
+using std::cerr;
+using std::endl;
+
 namespace ivanp { namespace args {
 
 namespace detail {
@@ -28,17 +32,29 @@ arg_type find_arg_type(const char* arg) noexcept {
 
 void parser::parse(int argc, char const * const * argv) {
   for (int i=1; i<argc; ++i) {
-    std::cout << argv[i] << ' ' << detail::find_arg_type(argv[i]) << std::endl;
+    for (const auto& m : help_matchers) {
+      if ((*m)(argv[i])) {
+        help();
+        return;
+      }
+    }
+  }
+  for (int i=1; i<argc; ++i) {
+    cout << argv[i] << ' ' << detail::find_arg_type(argv[i]) << endl;
     for (const auto& m : matchers[detail::find_arg_type(argv[i])]) {
-      std::cout << m.second->descr << std::endl;
+      cout << m.second->descr << endl;
       if ((*m.first)(argv[i])) {
-        std::cout << argv[i] << " matched with " << m.second->descr << std::endl;
+        cout << argv[i] << " matched with " << m.second->descr << endl;
         goto outer;
       }
     }
-    std::cout << argv[i] << " didn't match" << std::endl;
+    cout << argv[i] << " didn't match" << endl;
     outer: ;
   }
+}
+
+void parser::help() {
+  cout << "help" << endl;
 }
 
 }} // end namespace ivanp

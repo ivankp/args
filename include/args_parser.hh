@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <memory>
 #include <type_traits>
 
@@ -11,6 +12,8 @@
 #elif defined(ARGS_PARSER_BOOST_REGEX)
 #include <boost/regex.hpp>
 #endif
+
+#include "string.hh"
 
 namespace ivanp { namespace args {
 
@@ -21,6 +24,7 @@ namespace detail {
 
 struct arg_match_base {
   virtual bool operator()(const char* arg) const noexcept = 0;
+  virtual ~arg_match_base() { }
 };
 
 template <typename T>
@@ -118,6 +122,7 @@ public:
   std::string descr, def, name;
 
   virtual void operator()(char const * const * arg) const = 0;
+  virtual std::string str() const = 0;
 protected:
   template <typename S>
   arg_def_base(S&& descr): req(0), mult(0), pos(0), adj(0), npos(0),
@@ -133,12 +138,12 @@ class arg_def final: public arg_def_base {
   T *x; // recepient of parsed value
   // std::function<void(char const * const *,T*)> parser;
 public:
-  // constexpr arg_def(T* x, const char *descr): arg_def_base{descr}, x(x) { }
   template <typename S>
   arg_def(T* x, S&& descr): arg_def_base(std::forward<S>(descr)), x(x) { }
   inline void operator()(char const * const * arg) const {
     // parser(strp,x);
   }
+  inline std::string str() const { return to_str_if_can(*x); }
 };
 
 // ------------------------------------------------------------------
@@ -172,7 +177,9 @@ struct def : prop {
   std::string str;
   template <typename... Args>
   def(Args&&... args): str(std::forward<Args>(args)...) { }
-  void operator()(arg_def* arg) { arg->def  = std::move(str); }
+  void operator()(arg_def* arg) {
+    arg->def = '(' + str.size() ? str : arg->str() + ')';
+  }
 };
 
 namespace detail {
@@ -237,34 +244,44 @@ inline void apply_all(arg_def* arg, Props&& props, std::index_sequence<>) { }
 
 class parser {
   std::vector<std::unique_ptr<detail::arg_def_base>> arg_defs;
-  std::vector<std::vector<std::pair<
+  std::array<std::vector<std::pair<
     std::unique_ptr<const detail::arg_match_base>,
     const detail::arg_def_base*
-  >>> matchers;
+  >>,3> matchers;
+  std::vector<const detail::arg_match_base*> help_matchers;
 
   // detail::arg_def_base *_last_arg = nullptr;
   // TODO: cross communication between arg defs
 
 public:
-  parser(): matchers(3) { }
+  template <typename... M>
+  parser(M&&... m): help_matchers{
+      new detail::arg_match<std::decay_t<M>>(std::forward<M>(m))...
+    } { }
+  ~parser() { // because you can't list initialize vector of un-copiable objects
+    for (auto* ptr : help_matchers) delete ptr;
+  }
+
   void parse(int argc, char const * const * argv);
+  void help();
 
   template <typename T, typename... Props>
   parser& operator()(T* x,
     std::initializer_list<const char*> matchers, const char* descr="",
     Props&&... props
   ) {
-    arg_defs.emplace_back(new detail::arg_def<T>(x,descr));
+    auto *arg = new detail::arg_def<T>(x,descr);
+    arg_defs.emplace_back(arg);
     for (const char* x : matchers) {
+      arg->name += to_str_if_can(x);
+      if (&x != &*matchers.end()) arg->name += ", ";
       auto&& m = detail::make_arg_match(x);
       // TODO: find out what binding to auto&& really does
-      this->matchers[m.second].emplace_back(m.first,arg_defs.back().get());
+      this->matchers[m.second].emplace_back(m.first,arg);
     }
     auto props_tup = std::make_tuple(std::forward<Props>(props)...);
-    prop::detail::apply_all(
-      arg_defs.back().get(), props_tup,
-      prop::detail::get_pred_indices<Props...>{}
-    );
+    using pred_indices = prop::detail::get_pred_indices<Props...>;
+    prop::detail::apply_all( arg, props_tup, pred_indices{} );
     return *this;
   }
 
@@ -272,18 +289,18 @@ public:
   parser& operator()(T* x,
     Matcher&& matcher, const char* descr="", Props&&... props
   ) {
-    arg_defs.emplace_back(new detail::arg_def<T>(x,descr));
+    auto *arg = new detail::arg_def<T>(x,descr);
+    arg->name = to_str_if_can(matcher);
+    arg_defs.emplace_back(arg);
     auto&& m = detail::make_arg_match(std::forward<Matcher>(matcher));
-    matchers[m.second].emplace_back(m.first,arg_defs.back().get());
+    matchers[m.second].emplace_back(m.first,arg);
     auto props_tup = std::make_tuple(std::forward<Props>(props)...);
-    prop::detail::apply_all(
-      arg_defs.back().get(), props_tup,
-      prop::detail::get_pred_indices<Props...>{}
-    );
+    using pred_indices = prop::detail::get_pred_indices<Props...>;
+    prop::detail::apply_all( arg, props_tup, pred_indices{} );
     return *this;
   }
 
-/*
+/* FIXME
   template <typename T, typename... Matchers, typename... Props>
   parser& operator()(T* x,
     std::tuple<Matchers...> matchers, const char* descr="",

@@ -4,6 +4,9 @@
 !Makefile
 !include/
 !src/
+
+!test/
+test/*
 !test/*.cc
 
 **.swp
