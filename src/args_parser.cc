@@ -30,9 +30,9 @@ void parser::parse(int argc, char const * const * argv) {
   for (int i=1; i<argc; ++i) {
     std::cout << argv[i] << ' ' << detail::find_arg_type(argv[i]) << std::endl;
     for (const auto& m : matchers[detail::find_arg_type(argv[i])]) {
-      std::cout << m.second->descr() << std::endl;
+      std::cout << m.second->descr << std::endl;
       if ((*m.first)(argv[i])) {
-        std::cout << argv[i] << " matched with " << m.second->descr() << std::endl;
+        std::cout << argv[i] << " matched with " << m.second->descr << std::endl;
         goto outer;
       }
     }
