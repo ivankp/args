@@ -15,14 +15,14 @@ int main(int argc, char* argv[]) {
   int a, b, c;
 
   try {
-    using namespace ivanp::args::prop;
-    ivanp::args::parser('h',"--help")
-    (&a,"-aa"s,"A")
-    (&b,{"-b","--b-opt"},"B",mult{},pos{2},name{"b"},4,4,4)
-    (&c,'c',"C")
-    (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")
-    (&c,".*\\.txt","R",name{"regex"},req())
-    .parse(argc,argv);
+    using namespace ivanp::args;
+    parser()
+      (&a,"-aa"s,"A")
+      (&b,{"-b","--b-opt"},"B",multi{},pos{2},named{"b"})
+      (&c,'c',"C")
+      (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")
+      (&c,".*\\.txt","R",named{"regex"},req())
+      .parse(argc,argv);
   } catch(std::exception& e) {
     cerr << e.what() << endl;
     return 1;

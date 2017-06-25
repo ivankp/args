@@ -1,6 +1,5 @@
-#include "args_parser.hh"
-
 #include <iostream>
+#include "args_parser.hh"
 
 using std::cout;
 using std::cerr;
@@ -31,14 +30,14 @@ arg_type find_arg_type(const char* arg) noexcept {
 }
 
 void parser::parse(int argc, char const * const * argv) {
-  for (int i=1; i<argc; ++i) {
-    for (const auto& m : help_matchers) {
-      if ((*m)(argv[i])) {
-        help();
-        return;
-      }
-    }
-  }
+  // for (int i=1; i<argc; ++i) {
+  //   for (const auto& m : help_matchers) {
+  //     if ((*m)(argv[i])) {
+  //       help();
+  //       return;
+  //     }
+  //   }
+  // }
   for (int i=1; i<argc; ++i) {
     cout << argv[i] << ' ' << detail::find_arg_type(argv[i]) << endl;
     for (const auto& m : matchers[detail::find_arg_type(argv[i])]) {
@@ -53,8 +52,9 @@ void parser::parse(int argc, char const * const * argv) {
   }
 }
 
-void parser::help() {
-  cout << "help" << endl;
-}
+// FIXME
+// void parser::help() {
+//   cout << "help" << endl;
+// }
 
 }} // end namespace ivanp
