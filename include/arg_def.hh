@@ -1,11 +1,7 @@
 #ifndef IVANP_ARG_DEF_HH
 #define IVANP_ARG_DEF_HH
 
-#ifdef ARGS_PARSER_BOOST_LEXICAL_CAST
-#include <boost/lexical_cast.hpp>
-#else
-#include <sstream>
-#endif
+#include "default_arg_parser.hh"
 
 namespace ivanp { namespace args {
 
@@ -23,7 +19,7 @@ struct multi { };
 template <typename T> struct is_multi : std::false_type { };
 template <> struct is_multi<multi> : std::true_type { };
 
-struct pos { unsigned pos; };
+struct pos { unsigned pos = 0; };
 template <typename T> struct is_pos : std::false_type { };
 template <> struct is_pos<pos> : std::true_type { };
 
@@ -47,15 +43,12 @@ struct arg_def_base {
   std::string descr;
   arg_def_base(std::string&& descr): descr(std::move(descr)) { }
   virtual ~arg_def_base() { }
+  virtual void parse(const char* arg) const = 0;
 };
 
 template <typename T, typename... Mixins>
-struct arg_def final: arg_def_base, Mixins... {
+class arg_def final: public arg_def_base, Mixins... {
   T *x; // recepient of parsed value
-
-  template <typename... M>
-  arg_def(T* x, std::string&& descr, M&&... m)
-  : arg_def_base(std::move(descr)), Mixins(std::forward<M>(m))..., x(x) { }
 
   using mixins = std::tuple<Mixins...>;
   using parser_index = get_indices_of_t<
@@ -64,20 +57,21 @@ struct arg_def final: arg_def_base, Mixins... {
   // use custom parser if passed
   template <typename index = parser_index>
   inline std::enable_if_t<index::size()==1>
-  operator()(const char* arg) const {
+  parse_impl(const char* arg) const {
     using parser_t = std::tuple_element_t<seq_head<parser_index>::value,mixins>;
     parser_t::operator()(arg,*x);
   }
   // otherwise use default parser
   template <typename index = parser_index>
   inline std::enable_if_t<index::size()==0>
-  operator()(const char* arg) const {
-#ifdef ARGS_PARSER_BOOST_LEXICAL_CAST
-    *x = boost::lexical_cast<T>(arg);
-#else
-    std::stringstream(arg) >> *x;
-#endif
-  }
+  parse_impl(const char* arg) const { detail::arg_parser<T>::parse(arg,*x); }
+
+public:
+  template <typename... M>
+  arg_def(T* x, std::string&& descr, M&&... m)
+  : arg_def_base(std::move(descr)), Mixins(std::forward<M>(m))..., x(x) { }
+
+  inline void parse(const char* arg) const { parse_impl(arg); }
 };
 
 template <typename T, typename Tuple, size_t... I>

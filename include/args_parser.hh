@@ -69,7 +69,7 @@ class parser {
     matchers[m.second].emplace_back(std::move(m.first),arg_def);
   }
   template <typename... M, size_t... I>
-  inline void add_arg_matchs(
+  inline void add_arg_matches(
     const std::tuple<M...>& matchers, detail::arg_def_base* arg_def,
     std::index_sequence<I...>
   ) {
@@ -115,7 +115,7 @@ public:
     static_assert( sizeof...(Matchers) > 0,
       "\033[33mempty tuple in program argument definition\033[0m");
     auto *arg_def = add_arg_def(x,std::move(descr),std::forward<Props>(p)...);
-    add_arg_matchs(matchers,arg_def,std::index_sequence_for<Matchers...>{});
+    add_arg_matches(matchers,arg_def,std::index_sequence_for<Matchers...>{});
     return *this;
   }
 };

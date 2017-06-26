@@ -27,9 +27,11 @@ int main(int argc, char* argv[]) {
       (&c,".*\\.txt","ends with .txt",name{"regex"})
       .parse(argc,argv);
   } catch(const std::exception& e) {
-    cerr << e.what() << endl;
+    cerr <<"\033[31m"<< e.what() <<"\033[0m"<< endl;
     return 1;
   }
+
+  TEST( b )
 
   return 0;
 }

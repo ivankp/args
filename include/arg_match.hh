@@ -31,6 +31,7 @@ public:
 template <>
 inline bool arg_match<char>::operator()(const char* arg) const noexcept {
   return ( arg[1]==m && arg[2]=='\0' );
+  // TODO: short args without space
 }
 template <>
 bool arg_match<const char*>::operator()(const char* arg) const noexcept;
@@ -55,9 +56,9 @@ inline bool arg_match<boost::regex>::operator()(const char* arg) const noexcept 
 
 enum arg_type { long_arg, short_arg, context_arg };
 
-arg_type find_arg_type(const char* arg) noexcept;
-inline arg_type find_arg_type(const std::string& arg) noexcept {
-  return find_arg_type(arg.c_str());
+arg_type get_arg_type(const char* arg) noexcept;
+inline arg_type get_arg_type(const std::string& arg) noexcept {
+  return get_arg_type(arg.c_str());
 }
 
 // Matcher factories ------------------------------------------------
@@ -83,7 +84,7 @@ arg_match_type make_arg_match_impl(T&& x, arg_match_tag<char>) noexcept {
 template <typename T, typename TagT>
 std::enable_if_t<std::is_convertible<TagT,std::string>::value,arg_match_type>
 make_arg_match_impl(T&& x, arg_match_tag<TagT>) noexcept {
-  const arg_type t = find_arg_type(x);
+  const arg_type t = get_arg_type(x);
 #if defined(ARGS_PARSER_STD_REGEX) || defined(ARGS_PARSER_BOOST_REGEX)
   using regex_t =
 # ifdef ARGS_PARSER_STD_REGEX
