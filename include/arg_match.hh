@@ -63,7 +63,7 @@ inline arg_type find_arg_type(const std::string& arg) noexcept {
 // Matcher factories ------------------------------------------------
 
 using arg_match_type = std::pair<const arg_match_base*,arg_type>;
-template <typename T> struct arg_match_tag { };
+template <typename T> struct arg_match_tag { using type = T; };
 
 template <typename T>
 inline arg_match_type make_arg_match(T&& x) noexcept {
@@ -73,7 +73,8 @@ inline arg_match_type make_arg_match(T&& x) noexcept {
 
 template <typename T, typename Tag>
 arg_match_type make_arg_match_impl(T&& x, Tag) noexcept {
-  return { new arg_match<T>( std::forward<T>(x) ), context_arg };
+  using type = typename Tag::type;
+  return { new arg_match<type>( std::forward<T>(x) ), context_arg };
 }
 template <typename T>
 arg_match_type make_arg_match_impl(T&& x, arg_match_tag<char>) noexcept {

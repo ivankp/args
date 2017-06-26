@@ -62,7 +62,9 @@ public:
   static constexpr bool value = type::value;
 };
 
+#ifndef __cpp_fold_expressions
 template <typename... Args> constexpr void fold(Args...) noexcept { };
+#endif
 
 template <typename T> struct is_tuple: std::false_type { };
 template <typename... T> struct is_tuple<std::tuple<T...>>: std::true_type { };

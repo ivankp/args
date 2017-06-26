@@ -6,6 +6,7 @@
 #include <array>
 #include <memory>
 #include <type_traits>
+#include <stdexcept>
 
 #include "type.hh"
 
@@ -31,7 +32,7 @@ class parser {
     using NAME##_i = get_indices_of_t< \
       ::ivanp::args::is_##NAME, props_types>; \
     static_assert( NAME##_i::size() <= 1, \
-      "\033[33mrepeated \"" #NAME "\" in argument definition\033[0m");
+      "\033[33mrepeated \"" #NAME "\" in program argument definition\033[0m");
 
     UNIQUE_PROP_ASSERT(name)
     UNIQUE_PROP_ASSERT(pos)
@@ -44,12 +45,12 @@ class parser {
     using parser_i = get_indices_of_t<
       ::ivanp::args::is_parser<T>::template type, props_types>;
     static_assert( parser_i::size() <= 1,
-      "\033[33mrepeated parser in argument definition\033[0m");
+      "\033[33mrepeated parser in program argument definition\033[0m");
 
     using seq = seq_join_t< parser_i, name_i, pos_i, req_i, multi_i, tag_i >;
 
     static_assert( seq::size() == sizeof...(Props),
-      "\033[33munrecognized option in argument definition\033[0m");
+      "\033[33munrecognized option in program argument definition\033[0m");
 
     auto *arg_def = detail::make_arg_def(x, std::move(descr), props, seq{});
     arg_defs.emplace_back(arg_def);
@@ -57,26 +58,26 @@ class parser {
     using arg_def_t = std::decay_t<decltype(*arg_def)>;
     type_size<arg_def_t>();
 
-    (*arg_def)("segsefse");
-
     return arg_def;
   }
 
   template <typename Matcher>
-  inline auto add_arg_match(
+  inline void add_arg_match(
     Matcher&& matcher, detail::arg_def_base* arg_def
   ) {
     auto&& m = detail::make_arg_match(std::forward<Matcher>(matcher));
     matchers[m.second].emplace_back(std::move(m.first),arg_def);
-    struct ret { }; // for fold to work
-    return ret { };
   }
   template <typename... M, size_t... I>
   inline void add_arg_matchs(
     const std::tuple<M...>& matchers, detail::arg_def_base* arg_def,
     std::index_sequence<I...>
   ) {
-    fold(add_arg_match(std::get<I>(matchers),arg_def)...);
+#ifdef __cpp_fold_expressions
+    (add_arg_match(std::get<I>(matchers),arg_def),...);
+#else
+    fold((add_arg_match(std::get<I>(matchers),arg_def),0)...);
+#endif
   }
 
 public:
@@ -88,6 +89,8 @@ public:
     std::initializer_list<const char*> matchers,
     std::string descr={}, Props&&... p
   ) {
+    if (matchers.size()==0) throw std::invalid_argument(
+      "empty initializer list in program argument definition");
     auto *arg_def = add_arg_def(x,std::move(descr),std::forward<Props>(p)...);
     for (const char* m : matchers) add_arg_match(m,arg_def);
     return *this;
@@ -109,6 +112,8 @@ public:
     const std::tuple<Matchers...>& matchers,
     std::string descr={}, Props&&... p
   ) {
+    static_assert( sizeof...(Matchers) > 0,
+      "\033[33mempty tuple in program argument definition\033[0m");
     auto *arg_def = add_arg_def(x,std::move(descr),std::forward<Props>(p)...);
     add_arg_matchs(matchers,arg_def,std::index_sequence_for<Matchers...>{});
     return *this;
