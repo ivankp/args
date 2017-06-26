@@ -19,11 +19,11 @@ int main(int argc, char* argv[]) {
     parser()
       (&a,"-aa"s,"A")
       (&b,{"-b","--b-opt"},"B",multi{},pos{2},named{"b"})
-      (&c,'c',"C")
+      (&c,'c',"C",[](const char* str,int&){ cout << str << endl; })
       (&c,[](const char* arg){ return arg[0]=='t'; },"starts with \'t\'")
       (&c,".*\\.txt","R",named{"regex"},req())
       .parse(argc,argv);
-  } catch(std::exception& e) {
+  } catch(const std::exception& e) {
     cerr << e.what() << endl;
     return 1;
   }

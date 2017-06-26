@@ -1,6 +1,8 @@
 #ifndef IVANP_UTILITY_HH
 #define IVANP_UTILITY_HH
 
+namespace ivanp {
+
 template <typename... T> struct make_void { typedef void type; };
 template <typename... T> using void_t = typename make_void<T...>::type;
 
@@ -33,6 +35,11 @@ struct seq_join<S1,S2,SS...>
 template <typename... SS>
 using seq_join_t = typename seq_join<SS...>::type;
 
+template <typename T> struct seq_head;
+template <typename T, T Head, T... I>
+struct seq_head<std::integer_sequence<T,Head,I...>>
+: std::integral_constant<T,Head> { };
+
 template <template <typename...> typename Pred, typename Tuple, typename Seq>
 struct meta_apply;
 template <template <typename...> typename Pred, typename... T, size_t... I>
@@ -42,11 +49,19 @@ struct meta_apply<Pred,std::tuple<T...>,std::index_sequence<I...>> {
 template <template <typename...> typename Pred, typename Tuple, typename Seq>
 using meta_apply_t = typename meta_apply<Pred,Tuple,Seq>::type;
 
-template <template <typename...> typename F, typename T>
-struct meta_bind1 {
-  template <typename... Args> using type = F<T,Args...>;
+template <typename T, typename... Args> // x(args...)
+class is_callable {
+  template <typename, typename = void>
+  struct impl: std::false_type { };
+  template <typename U>
+  struct impl<U,
+    void_t<decltype( std::declval<U&>()(std::declval<Args>()...) )>
+  > : std::true_type { };
+public:
+  using type = impl<T>;
+  static constexpr bool value = type::value;
 };
-template <template <typename...> typename F, typename T>
-using meta_bind1_t = typename meta_bind1<F,T>::type;
+
+} // end namespace ivanp
 
 #endif
