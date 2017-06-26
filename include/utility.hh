@@ -62,6 +62,11 @@ public:
   static constexpr bool value = type::value;
 };
 
+template <typename... Args> constexpr void fold(Args...) noexcept { };
+
+template <typename T> struct is_tuple: std::false_type { };
+template <typename... T> struct is_tuple<std::tuple<T...>>: std::true_type { };
+
 } // end namespace ivanp
 
 #endif

@@ -23,7 +23,7 @@ class parser {
   >>,3> matchers;
 
   template <typename T, typename... Props>
-  inline auto* make_arg_def(T* x, std::string&& descr, Props&&... p) {
+  inline auto* add_arg_def(T* x, std::string&& descr, Props&&... p) {
     using props_types = std::tuple<std::decay_t<Props>...>;
     const auto props  = std::forward_as_tuple(std::forward<Props>(p)...);
 
@@ -33,7 +33,7 @@ class parser {
     static_assert( NAME##_i::size() <= 1, \
       "\033[33mrepeated \"" #NAME "\" in argument definition\033[0m");
 
-    UNIQUE_PROP_ASSERT(named)
+    UNIQUE_PROP_ASSERT(name)
     UNIQUE_PROP_ASSERT(pos)
     UNIQUE_PROP_ASSERT(req)
     UNIQUE_PROP_ASSERT(multi)
@@ -46,7 +46,7 @@ class parser {
     static_assert( parser_i::size() <= 1,
       "\033[33mrepeated parser in argument definition\033[0m");
 
-    using seq = seq_join_t< named_i, parser_i, pos_i, req_i, multi_i, tag_i >;
+    using seq = seq_join_t< parser_i, name_i, pos_i, req_i, multi_i, tag_i >;
 
     static_assert( seq::size() == sizeof...(Props),
       "\033[33munrecognized option in argument definition\033[0m");
@@ -62,46 +62,57 @@ class parser {
     return arg_def;
   }
 
+  template <typename Matcher>
+  inline auto add_arg_match(
+    Matcher&& matcher, detail::arg_def_base* arg_def
+  ) {
+    auto&& m = detail::make_arg_match(std::forward<Matcher>(matcher));
+    matchers[m.second].emplace_back(std::move(m.first),arg_def);
+    struct ret { }; // for fold to work
+    return ret { };
+  }
+  template <typename... M, size_t... I>
+  inline void add_arg_matchs(
+    const std::tuple<M...>& matchers, detail::arg_def_base* arg_def,
+    std::index_sequence<I...>
+  ) {
+    fold(add_arg_match(std::get<I>(matchers),arg_def)...);
+  }
+
 public:
   void parse(int argc, char const * const * argv);
   // void help(); // FIXME
 
   template <typename T, typename... Props>
   parser& operator()(T* x,
-    std::initializer_list<const char*> matchers, std::string descr={},
-    Props&&... p
+    std::initializer_list<const char*> matchers,
+    std::string descr={}, Props&&... p
   ) {
-    auto *arg_def = make_arg_def(x,std::move(descr),std::forward<Props>(p)...);
-    for (const char* x : matchers) {
-      // arg_def->name += to_str_if_can(x);
-      // if (&x != &*matchers.end()) arg_def->name += ", ";
-      // TODO: compute names only for help
-      auto&& m = detail::make_arg_match(x);
-      // TODO: find out what binding to auto&& really does
-      this->matchers[m.second].emplace_back(std::move(m.first),arg_def);
-    }
+    auto *arg_def = add_arg_def(x,std::move(descr),std::forward<Props>(p)...);
+    for (const char* m : matchers) add_arg_match(m,arg_def);
     return *this;
   }
 
   template <typename T, typename Matcher, typename... Props>
-  parser& operator()(T* x,
-    Matcher&& matcher, std::string descr={}, Props&&... p
+  std::enable_if_t<!is_tuple<std::decay_t<Matcher>>::value,parser&>
+  operator()(T* x,
+    Matcher&& matcher,
+    std::string descr={}, Props&&... p
   ) {
-    auto *arg_def = make_arg_def(x,std::move(descr),std::forward<Props>(p)...);
-    auto&& m = detail::make_arg_match(std::forward<Matcher>(matcher));
-    matchers[m.second].emplace_back(std::move(m.first),arg_def);
+    auto *arg_def = add_arg_def(x,std::move(descr),std::forward<Props>(p)...);
+    add_arg_match(matcher,arg_def);
     return *this;
   }
 
-/* FIXME
   template <typename T, typename... Matchers, typename... Props>
   parser& operator()(T* x,
-    std::tuple<Matchers...> matchers, const char* descr="",
-    const Props&... props
+    const std::tuple<Matchers...>& matchers,
+    std::string descr={}, Props&&... p
   ) {
+    auto *arg_def = add_arg_def(x,std::move(descr),std::forward<Props>(p)...);
+    add_arg_matchs(matchers,arg_def,std::index_sequence_for<Matchers...>{});
     return *this;
   }
-*/
 };
 
 }} // end namespace ivanp
