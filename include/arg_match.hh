@@ -31,7 +31,6 @@ public:
 template <>
 inline bool arg_match<char>::operator()(const char* arg) const noexcept {
   return ( arg[1]==m && arg[2]=='\0' );
-  // TODO: short args without space
 }
 template <>
 bool arg_match<const char*>::operator()(const char* arg) const noexcept;
@@ -56,8 +55,8 @@ inline bool arg_match<boost::regex>::operator()(const char* arg) const noexcept 
 
 enum arg_type { long_arg, short_arg, context_arg };
 
-arg_type get_arg_type(const char* arg) noexcept;
-inline arg_type get_arg_type(const std::string& arg) noexcept {
+arg_type get_arg_type(const char* arg);
+inline arg_type get_arg_type(const std::string& arg) {
   return get_arg_type(arg.c_str());
 }
 
@@ -67,13 +66,13 @@ using arg_match_type = std::pair<const arg_match_base*,arg_type>;
 template <typename T> struct arg_match_tag { using type = T; };
 
 template <typename T>
-inline arg_match_type make_arg_match(T&& x) noexcept {
+inline arg_match_type make_arg_match(T&& x) {
   return make_arg_match_impl(std::forward<T>(x),
     arg_match_tag<std::decay_t<T>>{});
 }
 
 template <typename T, typename Tag>
-arg_match_type make_arg_match_impl(T&& x, Tag) noexcept {
+arg_match_type make_arg_match_impl(T&& x, Tag) {
   using type = typename Tag::type;
   return { new arg_match<type>( std::forward<T>(x) ), context_arg };
 }
@@ -83,7 +82,7 @@ arg_match_type make_arg_match_impl(T&& x, arg_match_tag<char>) noexcept {
 }
 template <typename T, typename TagT>
 std::enable_if_t<std::is_convertible<TagT,std::string>::value,arg_match_type>
-make_arg_match_impl(T&& x, arg_match_tag<TagT>) noexcept {
+make_arg_match_impl(T&& x, arg_match_tag<TagT>) {
   const arg_type t = get_arg_type(x);
 #if defined(ARGS_PARSER_STD_REGEX) || defined(ARGS_PARSER_BOOST_REGEX)
   using regex_t =
@@ -96,6 +95,9 @@ make_arg_match_impl(T&& x, arg_match_tag<TagT>) noexcept {
     return { new arg_match<regex_t>( std::forward<T>(x) ), t };
   else
 #endif
+  if (t==short_arg)
+    return { new arg_match<char>( x[1] ), t };
+  else
     return { new arg_match<TagT>( std::forward<T>(x) ), t };
 }
 

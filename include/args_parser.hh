@@ -8,7 +8,14 @@
 #include <type_traits>
 #include <stdexcept>
 
+#define TEST(var) \
+  std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
+
 #include "type.hh"
+
+struct args_error : std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
 
 #include "utility.hh"
 #include "arg_match.hh"
@@ -20,7 +27,7 @@ class parser {
   std::vector<std::unique_ptr<detail::arg_def_base>> arg_defs;
   std::array<std::vector<std::pair<
     std::unique_ptr<const detail::arg_match_base>,
-    const detail::arg_def_base*
+    detail::arg_def_base*
   >>,3> matchers;
 
   template <typename T, typename... Props>

@@ -41,9 +41,14 @@ namespace detail {
 
 struct arg_def_base {
   std::string descr;
-  arg_def_base(std::string&& descr): descr(std::move(descr)) { }
+  unsigned count;
+  bool need;
+
+  arg_def_base(std::string&& descr, unsigned count, bool need)
+  : descr(std::move(descr)), count(count), need(need) { }
   virtual ~arg_def_base() { }
-  virtual void parse(const char* arg) const = 0;
+  virtual void parse(const char* arg) = 0;
+  virtual std::string name() const { return "argument"; }
 };
 
 template <typename T, typename... Mixins>
@@ -66,12 +71,20 @@ class arg_def final: public arg_def_base, Mixins... {
   inline std::enable_if_t<index::size()==0>
   parse_impl(const char* arg) const { detail::arg_parser<T>::parse(arg,*x); }
 
+  // inline bool is_multi() const noexcept {
+  //   return get_indices_of_t<::ivanp::args::is_multi,mixins>::size();
+  // }
+
 public:
   template <typename... M>
   arg_def(T* x, std::string&& descr, M&&... m)
-  : arg_def_base(std::move(descr)), Mixins(std::forward<M>(m))..., x(x) { }
+  : arg_def_base(std::move(descr),1,false),
+    Mixins(std::forward<M>(m))..., x(x) { }
 
-  inline void parse(const char* arg) const { parse_impl(arg); }
+  inline void parse(const char* arg) {
+    parse_impl(arg);
+    --count;
+  }
 };
 
 template <typename T, typename Tuple, size_t... I>

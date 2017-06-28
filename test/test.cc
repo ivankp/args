@@ -1,7 +1,5 @@
 #include <iostream>
-
-#define TEST(var) \
-  std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
+#include <cstring>
 
 // #define ARGS_PARSER_STD_REGEX
 // #define ARGS_PARSER_BOOST_LEXICAL_CAST
@@ -13,25 +11,30 @@ using std::endl;
 using namespace std::string_literals;
 
 int main(int argc, char* argv[]) {
-  int a, b, c;
+  double d;
+  int i;
+  std::string s;
 
   try {
     using namespace ivanp::args;
     parser()
-      (&a,"-aa"s,"A")
-      (&b,{"-b","--b-opt"},"B",multi{},pos{2})
-      (&c,'c',"C",[](const char* str,int&){ cout << str << endl; })
-      (&c,std::forward_as_tuple(
-            't', [](const char* arg){ return arg[0]=='t'; }
-          ),"starts with \'t\'")
-      (&c,".*\\.txt","ends with .txt",name{"regex"})
+      (&d,'d',"Double")
+      (&i,{"-i","--int"},"Int",pos{},multi{})
+      (&i,"--count","Count",
+        [](const char* str, int& x){ x = strlen(str); })
+      (&s,std::forward_as_tuple(
+            's', [](const char* arg){ return arg[0]=='t'; }),
+          "starts with \'t\'")
+      // (&c,".*\\.txt","ends with .txt",name{"regex"})
       .parse(argc,argv);
   } catch(const std::exception& e) {
     cerr <<"\033[31m"<< e.what() <<"\033[0m"<< endl;
     return 1;
   }
 
-  TEST( b )
+  TEST( d )
+  TEST( i )
+  TEST( s )
 
   return 0;
 }
