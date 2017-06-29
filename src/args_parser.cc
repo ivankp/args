@@ -82,9 +82,11 @@ void parser::parse(int argc, char const * const * argv) {
     if (arg_type!=context_arg || !waiting) {
       for (auto& m : matchers[arg_type]) {
         auto& def = m.second;
-        cout << "trying: " << def->descr << endl;
+        const auto name = def->name();
+        cout << "trying: " << name << endl;
         if ((*m.first)(arg)) {
-          cout << arg << " matched: " << def->descr << endl;
+          cout << arg << " matched: " << name << endl;
+          if (def->count==0) throw error("excessive arg " + name);
           if (str) def->parse(str), str = nullptr; // call parser & reset
           else if (def->is_switch()) { }
           else waiting = def;

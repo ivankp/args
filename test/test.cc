@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
     using namespace ivanp::args;
     parser()
       (&d,'d',"Double")
-      (&b,'b',"switch")
-      (&i,{"-i","--int"},"Int",pos{},multi{})
+      (&b,'b',"bool switch",name("switch"))
+      (&i,{"-i","--int"},"Int",pos(),multi(-1u))
       (&i,"--count","Count",
         [](const char* str, int& x){ x = strlen(str); })
       (&s,std::forward_as_tuple(

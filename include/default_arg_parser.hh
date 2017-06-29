@@ -17,7 +17,8 @@ template <typename T> struct arg_parser {
     try {
       x = boost::lexical_cast<T>(arg);
     } catch (...) {
-      throw args::error(cat(arg," cannot be interpreted as ",type_str<T>()));
+      throw args::error(cat(
+        '\"',arg,"\" cannot be interpreted as ",type_str<T>()));
     }
 #else
     std::istringstream(arg) >> x;

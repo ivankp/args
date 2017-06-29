@@ -40,7 +40,7 @@ class parser {
 
 #define UNIQUE_PROP_ASSERT(NAME) \
     using NAME##_i = get_indices_of_t< \
-      ::ivanp::args::is_##NAME, props_types>; \
+      ::ivanp::args::_::is_##NAME, props_types>; \
     static_assert( NAME##_i::size() <= 1, \
       "\033[33mrepeated \"" #NAME "\" in program argument definition\033[0m");
 
@@ -49,12 +49,11 @@ class parser {
     UNIQUE_PROP_ASSERT(pos)
     UNIQUE_PROP_ASSERT(req)
     UNIQUE_PROP_ASSERT(multi)
-    UNIQUE_PROP_ASSERT(tag)
 
 #undef UNIQUE_PROP_ASSERT
 
     using parser_i = get_indices_of_t<
-      ::ivanp::args::is_parser<T>::template type, props_types>;
+      ::ivanp::args::_::is_parser<T>::template type, props_types>;
     static_assert( parser_i::size() <= 1,
       "\033[33mrepeated parser in program argument definition\033[0m");
 
@@ -62,10 +61,9 @@ class parser {
       parser_i,
       name_i,
       switch_init_i,
-      pos_i,
-      req_i,
       multi_i,
-      tag_i
+      pos_i,
+      req_i
     >;
 
     static_assert( seq::size() == sizeof...(Props),
