@@ -2,7 +2,7 @@
 #include <cstring>
 
 // #define ARGS_PARSER_STD_REGEX
-// #define ARGS_PARSER_BOOST_LEXICAL_CAST
+#define ARGS_PARSER_BOOST_LEXICAL_CAST
 #include "args_parser.hh"
 
 using std::cout;

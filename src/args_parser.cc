@@ -1,5 +1,4 @@
 #include <iostream>
-#include <string>
 #include <cstring>
 #include <stdexcept>
 
@@ -21,14 +20,11 @@ bool arg_match<const char*>::operator()(const char* arg) const noexcept {
   return m[i]=='\0' && arg[i]=='\0';
 }
 
-arg_type get_arg_type(const char* arg) {
+arg_type get_arg_type(const char* arg) noexcept {
   unsigned char n = 0;
   for (char c=arg[n]; c=='-'; c=arg[++n]) ;
   switch (n) {
-    case  1:
-      if (arg[2]!='\0') throw args_error(
-        "short arg "+std::string(arg)+" more than one char long");
-      return   short_arg;
+    case  1: return   short_arg;
     case  2: return    long_arg;
     default: return context_arg;
   }
@@ -68,13 +64,14 @@ void parser::parse(int argc, char const * const * argv) {
 
         str = strchr(arg,'='); // split by '=' if long
         if (str) tmp.assign(arg,str), ++str, arg = tmp.c_str();
-        // else waiting = nullptr;
 
         break;
       case short_arg: // --------------------------------------------
+        if (arg[2]!='\0') str = arg+2;
 
         break;
       case context_arg: // ------------------------------------------
+        str = arg;
 
         break;
     }
