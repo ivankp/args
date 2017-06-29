@@ -27,6 +27,10 @@ struct req { };
 template <typename T> struct is_req : std::false_type { };
 template <> struct is_req<req> : std::true_type { };
 
+struct switch_init { };
+template <typename T> struct is_switch_init : std::false_type { };
+template <> struct is_switch_init<switch_init> : std::true_type { };
+
 template <typename T> struct is_parser {
   template <typename F>
   using type = typename is_callable<F,const char*,T&>::type;
@@ -49,6 +53,7 @@ struct arg_def_base {
   virtual ~arg_def_base() { }
   virtual void parse(const char* arg) = 0;
   virtual std::string name() const { return "argument"; }
+  virtual bool is_switch() const noexcept = 0;
 };
 
 template <typename T, typename... Mixins>
@@ -71,20 +76,37 @@ class arg_def final: public arg_def_base, Mixins... {
   inline std::enable_if_t<index::size()==0>
   parse_impl(const char* arg) const { detail::arg_parser<T>::parse(arg,*x); }
 
-  // inline bool is_multi() const noexcept {
-  //   return get_indices_of_t<::ivanp::args::is_multi,mixins>::size();
-  // }
+  using switch_init_index = get_indices_of_t<
+    ::ivanp::args::is_switch_init, mixins >;
+  template <typename U = T> inline std::enable_if_t<
+    std::is_same<U,bool>::value,
+  bool> is_switch_impl() const noexcept { (*x) = true; return true; }
+  template <typename U = T> inline std::enable_if_t<
+    !std::is_same<U,bool>::value && switch_init_index::size(),
+  bool> is_switch_impl() const noexcept {
+    using switch_init_t = std::tuple_element_t<
+      seq_head<switch_init_index>::value,mixins>;
+    switch_init_t::operator()(*x);
+    return true;
+  }
+  template <typename U = T> inline std::enable_if_t<
+    !std::is_same<U,bool>::value && !switch_init_index::size(),
+  bool> is_switch_impl() const noexcept { return false; }
 
 public:
   template <typename... M>
   arg_def(T* x, std::string&& descr, M&&... m)
-  : arg_def_base(std::move(descr),1,false),
+  : arg_def_base( std::move(descr),
+      !std::is_same<T,bool>::value,
+      false),
     Mixins(std::forward<M>(m))..., x(x) { }
 
   inline void parse(const char* arg) {
     parse_impl(arg);
     --count;
   }
+
+  inline bool is_switch() const noexcept { return is_switch_impl(); }
 };
 
 template <typename T, typename Tuple, size_t... I>

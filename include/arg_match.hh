@@ -96,7 +96,7 @@ make_arg_match_impl(T&& x, arg_match_tag<TagT>) {
   else
 #endif
   if (t==short_arg) {
-    if (x[2]!='\0') throw args_error(
+    if (x[2]!='\0') throw args::error(
       "short arg "+std::string(x)+" defined with more than one char");
     return { new arg_match<char>( x[1] ), t };
   } else {

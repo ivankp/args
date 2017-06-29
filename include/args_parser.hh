@@ -12,10 +12,13 @@
   std::cout <<"\033[36m"<< #var <<"\033[0m"<< " = " << var << std::endl;
 
 #include "type.hh"
+#include "string.hh"
 
-struct args_error : std::runtime_error {
+namespace ivanp { namespace args {
+struct error : std::runtime_error {
   using std::runtime_error::runtime_error;
 };
+}}
 
 #include "utility.hh"
 #include "arg_match.hh"
@@ -42,6 +45,7 @@ class parser {
       "\033[33mrepeated \"" #NAME "\" in program argument definition\033[0m");
 
     UNIQUE_PROP_ASSERT(name)
+    UNIQUE_PROP_ASSERT(switch_init)
     UNIQUE_PROP_ASSERT(pos)
     UNIQUE_PROP_ASSERT(req)
     UNIQUE_PROP_ASSERT(multi)
@@ -54,7 +58,15 @@ class parser {
     static_assert( parser_i::size() <= 1,
       "\033[33mrepeated parser in program argument definition\033[0m");
 
-    using seq = seq_join_t< parser_i, name_i, pos_i, req_i, multi_i, tag_i >;
+    using seq = seq_join_t<
+      parser_i,
+      name_i,
+      switch_init_i,
+      pos_i,
+      req_i,
+      multi_i,
+      tag_i
+    >;
 
     static_assert( seq::size() == sizeof...(Props),
       "\033[33munrecognized option in program argument definition\033[0m");

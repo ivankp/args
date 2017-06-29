@@ -18,7 +18,7 @@ constexpr literal type_str() {
   return literal(p.data() + 39, p.size() - 40);
 # endif
 #else
-# error type function does not work with this compiler
+# error "type function does not work with this compiler"
 #endif
 }
 

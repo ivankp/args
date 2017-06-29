@@ -14,11 +14,13 @@ int main(int argc, char* argv[]) {
   double d;
   int i;
   std::string s;
+  bool b;
 
   try {
     using namespace ivanp::args;
     parser()
       (&d,'d',"Double")
+      (&b,'b',"switch")
       (&i,{"-i","--int"},"Int",pos{},multi{})
       (&i,"--count","Count",
         [](const char* str, int& x){ x = strlen(str); })
@@ -35,6 +37,7 @@ int main(int argc, char* argv[]) {
   TEST( d )
   TEST( i )
   TEST( s )
+  TEST( b )
 
   return 0;
 }

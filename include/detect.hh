@@ -1,6 +1,7 @@
 #ifndef CPPREFERENCE_DETECT_HH
 #define CPPREFERENCE_DETECT_HH
 
+namespace ivanp {
 namespace detail {
 
 template <typename... T> struct make_void { typedef void type; };
@@ -38,5 +39,7 @@ using detected_t = typename detail::detector<
 
 template <class Default, template<class...> class Op, class... Args>
 using detected_or = detail::detector<Default, void, Op, Args...>;
+
+}
 
 #endif

@@ -7,6 +7,7 @@
 using std::cout;
 using std::cerr;
 using std::endl;
+using namespace std::string_literals;
 
 namespace ivanp { namespace args {
 
@@ -56,7 +57,7 @@ void parser::parse(int argc, char const * const * argv) {
     // ==============================================================
     if (arg_type!=context_arg) {
       if (waiting && waiting->need)
-        throw args_error(waiting->name() + " without value");
+        throw args::error(waiting->name() + " without value");
     }
 
     switch (arg_type) {
@@ -71,21 +72,24 @@ void parser::parse(int argc, char const * const * argv) {
 
         break;
       case context_arg: // ------------------------------------------
-        str = arg;
+        if (!waiting) str = arg;
 
         break;
     }
 
     // ==============================================================
 
-    for (auto& m : matchers[arg_type]) {
-      auto& def = m.second;
-      cout << def->descr << endl;
-      if ((*m.first)(arg)) {
-        cout << arg << " matched with " << def->descr << endl;
-        if (str) def->parse(str), str = nullptr; // call parser & reset
-        else waiting = def;
-        goto cont;
+    if (arg_type!=context_arg || !waiting) {
+      for (auto& m : matchers[arg_type]) {
+        auto& def = m.second;
+        cout << "trying: " << def->descr << endl;
+        if ((*m.first)(arg)) {
+          cout << arg << " matched: " << def->descr << endl;
+          if (str) def->parse(str), str = nullptr; // call parser & reset
+          else if (def->is_switch()) { }
+          else waiting = def;
+          goto cont;
+        }
       }
     }
 
@@ -95,7 +99,7 @@ void parser::parse(int argc, char const * const * argv) {
       goto cont;
     }
 
-    throw args_error(std::string("unexpected option ") + arg);
+    throw args::error("unexpected option "s + arg);
     cont: ;
   }
 }

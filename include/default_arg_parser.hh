@@ -14,9 +14,13 @@ namespace detail {
 template <typename T> struct arg_parser {
   inline static void parse(const char* arg, T& x) {
 #ifdef ARGS_PARSER_BOOST_LEXICAL_CAST
-    x = boost::lexical_cast<T>(arg);
+    try {
+      x = boost::lexical_cast<T>(arg);
+    } catch (...) {
+      throw args::error(cat(arg," cannot be interpreted as ",type_str<T>()));
+    }
 #else
-    std::stringstream(arg) >> x;
+    std::istringstream(arg) >> x;
 #endif
   }
 };
