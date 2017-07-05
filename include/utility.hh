@@ -24,6 +24,22 @@ public:
 template <template<typename> typename Pred, typename Tuple>
 using get_indices_of_t = typename get_indices_of<Pred,Tuple>::type;
 
+template <template<typename> typename Pred, typename Tuple>
+class first_index_of {
+  static constexpr size_t size = std::tuple_size<Tuple>::value;
+  template <size_t I> impl {
+    using type = std::conditional_t<
+      Pred<std::tuple_element_t<I,Tuple>>::value,
+      std::index_sequence<I>,
+      typename impl<I+1>::type >;
+  };
+  template <> impl<size> { using type = std::index_sequence<>; };
+public:
+  using type = typename impl<0>::type;
+};
+template <template<typename> typename Pred, typename Tuple>
+using first_index_of_t = typename first_index_of<Pred,Tuple>::type;
+
 template <typename... SS> struct seq_join;
 template <typename T, size_t... I1, size_t... I2>
 struct seq_join<std::integer_sequence<T,I1...>,std::integer_sequence<T,I2...>> {

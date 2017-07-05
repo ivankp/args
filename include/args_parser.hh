@@ -39,8 +39,7 @@ class parser {
     const auto props  = std::forward_as_tuple(std::forward<Props>(p)...);
 
 #define UNIQUE_PROP_ASSERT(NAME) \
-    using NAME##_i = get_indices_of_t< \
-      ::ivanp::args::_::is_##NAME, props_types>; \
+    using NAME##_i = get_indices_of_t<_::is_##NAME, props_types>; \
     static_assert( NAME##_i::size() <= 1, \
       "\033[33mrepeated \"" #NAME "\" in program argument definition\033[0m");
 
@@ -53,7 +52,7 @@ class parser {
 #undef UNIQUE_PROP_ASSERT
 
     using parser_i = get_indices_of_t<
-      ::ivanp::args::_::is_parser<T>::template type, props_types>;
+      _::is_parser<T>::template type, props_types>;
     static_assert( parser_i::size() <= 1,
       "\033[33mrepeated parser in program argument definition\033[0m");
 

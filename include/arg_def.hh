@@ -25,9 +25,18 @@ struct req { };
 template <typename T> struct is_req : std::false_type { };
 template <> struct is_req<req> : std::true_type { };
 
-template <typename... Args> struct switch_init {
-  // std::tuple<decay_t<Args>...> args;
-  // switch_init(
+template <typename... Args> class switch_init {
+  std::tuple<Args...> args;
+  template <typename T, size_t... I>
+  inline void construct(T& x, std::index_sequence<I...>) {
+    x = { std::get<I>(args)... };
+  }
+public:
+  template <typename... T>
+  switch_init(std::tuple<T...>&& tup): args(std::move(tup)) { }
+  template <typename T> inline void construct(T& x) {
+    construct(x,std::index_sequence_for<Args...>{});
+  }
 };
 template <> struct switch_init<> {
   template <typename T> inline void operator()(T& x) const { x = { }; }
@@ -49,6 +58,10 @@ constexpr _::multi multi(unsigned n) noexcept { return {n}; }
 constexpr _::multi multi() noexcept { return {}; }
 constexpr _::pos pos() noexcept { return {}; }
 constexpr _::req req() noexcept { return {}; }
+template <typename... Args>
+inline _::switch_init<std::decay_t<Args>...> switch_init(Args&&... args) {
+  return { std::forward_as_tuple(std::forward<Args>(args)...) };
+}
 
 namespace detail {
 
@@ -59,14 +72,15 @@ namespace detail {
 
 struct arg_def_base {
   std::string descr;
-  unsigned count = 1;
-  bool need = false;
+  unsigned count = 0;
 
   arg_def_base(std::string&& descr): descr(std::move(descr)) { }
   virtual ~arg_def_base() { }
   virtual void parse(const char* arg) = 0;
   virtual std::string name() const { return descr; } // FIXME
   virtual bool is_switch() = 0;
+  virtual unsigned min() const noexcept = 0;
+  virtual unsigned max() const noexcept = 0;
 };
 
 template <typename T, typename... Mixins>
@@ -74,10 +88,10 @@ class arg_def final: public arg_def_base, Mixins... {
   T *x; // recepient of parsed value
 
   using mixins = std::tuple<Mixins...>;
+  template <template<typename> typename Pred>
+  using index_t = first_index_of<Pred,mixins>;
   template <typename Seq>
   using mix_t = std::tuple_element_t<seq_head<Seq>::value,mixins>;
-  template <template<typename> typename Is>
-  using index_t = get_indices_of_t<Is,mixins>;
 
   // parser ---------------------------------------------------------
   using parser_index = index_t<_::is_parser<T>::template type>;
@@ -98,28 +112,19 @@ class arg_def final: public arg_def_base, Mixins... {
     std::is_same<U,bool>::value,
   bool> is_switch_impl() noexcept {
     (*x) = true;
-    --count;
+    ++count;
     return true;
   }
   template <typename U = T> inline std::enable_if_t<
     !std::is_same<U,bool>::value && switch_init_index::size(),
   bool> is_switch_impl() {
-    mix_t<switch_init_index>::operator()(*x);
-    --count;
+    mix_t<switch_init_index>::construct(*x);
+    ++count;
     return true;
   }
   template <typename U = T> inline std::enable_if_t<
     !std::is_same<U,bool>::value && !switch_init_index::size(),
   bool> is_switch_impl() const noexcept { return false; }
-
-  // multi ----------------------------------------------------------
-  using multi_index = index_t<_::is_multi>;
-  template <typename index = multi_index>
-  inline std::enable_if_t<index::size()==1> set_count() noexcept {
-    count = mix_t<multi_index>::num;
-  }
-  template <typename index = multi_index>
-  inline std::enable_if_t<index::size()==0> set_count() const noexcept { }
 
   // name -----------------------------------------------------------
   using name_index = index_t<_::is_name>;
@@ -132,6 +137,31 @@ class arg_def final: public arg_def_base, Mixins... {
     return arg_def_base::name();
   }
 
+  // min max --------------------------------------------------------
+  inline unsigned min() const noexcept {
+    return switch_init_index::size();
+  }
+
+  using multi_index = index_t<_::is_multi>;
+  template <typename index = multi_index>
+  inline std::enable_if_t<
+    index::size()==1,
+  unsigned> max() noexcept {
+    return mix_t<multi_index>::num;
+  }
+  template <typename index = multi_index>
+  inline std::enable_if_t<
+    index::size()==0 && 
+  unsigned> max() const noexcept { return 0; }
+
+  inline unsigned max() const noexcept {
+
+    return switch_init_index::size();
+  }
+
+    return std::integral_constant<unsigned,switch_init_index::size() >::value;
+  }
+
   // ----------------------------------------------------------------
 public:
   template <typename... M>
@@ -141,13 +171,24 @@ public:
 
   inline void parse(const char* arg) {
     parse_impl(arg);
-    --count;
+    ++count;
   }
 
   inline bool is_switch() { return is_switch_impl(); }
   inline std::string name() const { return name_impl(); }
 };
 
+// Traits -----------------------------------------------------------
+// CA. Can have arguments
+// MA. Must have arguments
+// CS. Can be a switch
+// MS. Is switch only (must)
+// MB. Must receive all arguments before next option
+
+template <typename ArgDef>
+struct argCA {};
+
+// Factory ----------------------------------------------------------
 template <typename T, typename Tuple, size_t... I>
 inline auto make_arg_def(
   T* x, std::string&& descr, Tuple&& tup, std::index_sequence<I...>

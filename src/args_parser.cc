@@ -77,6 +77,14 @@ void parser::parse(int argc, char const * const * argv) {
         break;
     }
 
+    // TODO
+
+    // ./test/test --int 55 -d1.754564e3 test
+    // "test" cannot be interpreted as int
+
+    // ./test/test --int 55 -d 1.75456
+    // "1.75456" cannot be interpreted as int
+
     // ==============================================================
 
     if (arg_type!=context_arg || !waiting) {

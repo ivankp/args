@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
   try {
     using namespace ivanp::args;
     parser()
-      (&d,'d',"Double")
+      (&d,'d',"Double",switch_init(4.2))
       (&b,'b',"bool switch",name("switch"))
       (&i,{"-i","--int"},"Int",pos(),multi(-1u))
       (&i,"--count","Count",
